@@ -229,7 +229,7 @@ def modelTrain():
     print('Logistic Regression Accuracy Score on Test data:', logit.score(X_test,Y_test))
     print('Logistic Regression Accuracy Score on train data:', logit.score(X_train,Y_train))
 
-    with open('final3.pkl', 'wb') as f:
+    with open('final4.pkl', 'wb') as f:
         pickle.dump(logit, f)
     return render_template('csv.html', text = logit.score(X_test,Y_test))
 
