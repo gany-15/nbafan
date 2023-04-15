@@ -18,6 +18,9 @@ import numpy as np
 import csv
 import NBABackend
 import requests
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.io as pio
 
 auth = Blueprint("auth", __name__)
 
@@ -25,15 +28,126 @@ df2 = pd.read_csv("NBABackend/csv/Player Totals.csv")
 
 @auth.route("/",  methods = ["GET", "POST"])
 def login():
-    print("Here")
+    # print("Here")
     if request.method == "POST":
         playerOne = request.form.get("playerOne")
         playerTwo = request.form.get("playerTwo")
         playerThree = request.form.get("playerThree")
         playerFour = request.form.get("playerFour")
         playerFive = request.form.get("playerFive")
-        print(playerOne, playerTwo, playerThree, playerFour, playerFive)
+        # print(playerOne, playerTwo, playerThree, playerFour, playerFive)
+
+        dataSet = pd.read_csv('NBABackend/csv/Player Totals.csv')
+        dataSet = dataSet[dataSet["lg"] == "NBA"]
+        dataSet = dataSet[dataSet["season"] >= 2015]
+        dataSet = dataSet.drop(columns = "birth_year")
+        trialPlayer = dataSet.drop(columns = ["seas_id", "player_id", "age", "experience","lg", "mp","ft_percent", 'g', 'gs'])
+        trialPlayer2 = trialPlayer
+        trialPlayer2["pos"] = trialPlayer2["pos"].str.split('-').str.get(0)
+        trialPlayer2 = trialPlayer2.drop(columns = ['season', 'player', 'pos', 'tm'])
+
+        stats = {
+            'C': [0.7, 0.4, 0.9, 0.3, 0.3, 0.5, 0.8, 0.8, 0.8, 0.6, 0.7, 0.8, 0.8, 0.8, 0.8, 0.4, 0.6, 0.8, 0.8, 0.8, 0.7],
+            'PF': [0.6, 0.5, 0.75, 0.5, 0.5, 0.65, 0.6, 0.6, 0.65, 0.5, 0.5, 0.6, 0.6, 0.65, 0.65, 0.4, 0.6, 0.65, 0.75, 0.7, 0.7],
+            'PG': [0.8, 0.8, 0.6, 0.65, 0.65, 0.8, 0.6, 0.7, 0.5, 0.5, 0.8, 0.75, 0.4, 0.55, 0.55, 0.8, 0.8, 0.5, 0.7, 0.65, 0.75],
+            'SF': [0.4, 0.5, 0.6, 0.65, 0.65, 0.8, 0.4, 0.4, 0.55, 0.5, 0.5, 0.55, 0.45, 0.5, 0.5, 0.4, 0.7, 0.55, 0.7, 0.65, 0.7],
+            'SG': [0.5, 0.7, 0.6, 0.75, 0.75, 0.8, 0.4, 0.5, 0.5, 0.5, 0.5, 0.55, 0.4, 0.5, 0.5, 0.5, 0.7, 0.5, 0.8, 0.65, 0.7]
+        }
+        for index, row in trialPlayer.iterrows():
+            trialPlayer2.loc[index] = trialPlayer2.loc[index] * stats[trialPlayer.loc[index, "pos"]]
+        
+        trialPlayer3 = trialPlayer2
+        trialPlayer3["season"] = trialPlayer["season"]
+        trialPlayer3["player"] = trialPlayer["player"]
+        trialPlayer3["pos"] = trialPlayer["pos"]
+        trialPlayer3["tm"] = trialPlayer["tm"]
+        trialPlayer3 = trialPlayer3.fillna(0)
+        rows_to_drop = trialPlayer3[trialPlayer3["tm"] == "TOT"].index
+        trialPlayer3.drop(rows_to_drop, inplace=True)
+        grouped = trialPlayer3.groupby(['season', 'tm'])
+        teams_dict = {}
+
+        for (year, team), players in grouped:
+            if year not in teams_dict:
+                teams_dict[year] = {}
+            teams_dict[year][team] = players['player'].tolist()
+        newtrial = []
+        for key in teams_dict:
+            for team in teams_dict[key]:
+                current = teams_dict[key][team]
+                chemistry = 0
+                for player in current:
+                    for year in teams_dict:
+                        for key2 in teams_dict[year]:
+                            if player in teams_dict[year][key2]:
+                                for player2 in current:
+                                    if player2 in teams_dict[year][key2]:
+                                        if player != player2:
+                                            chemistry = chemistry + 1
+                                        else:
+                                            continue
+                                    else:
+                                        continue
+                newtrial.append([key, team, chemistry])
+
+        df = pd.read_csv('NBABackend/csv/output4.csv')
+        filtcols = df.columns[-25:-4]
+        p = {
+            'C': df[df['player'] == playerOne][filtcols].values[0],
+            'PF': df[df['player'] == playerTwo][filtcols].values[0],
+            'PG': df[df['player'] == playerThree][filtcols].values[0],
+            'SF': df[df['player'] == playerFour][filtcols].values[0],
+            'SG': df[df['player'] == playerFive][filtcols].values[0]
+        }
+        team_tot = []
+        for pos in p:
+            team_tot.append(p[pos])
+        currentTeam = np.mean(team_tot, axis=0)
+
+        current = [playerOne, playerTwo, playerThree, playerFour, playerFive]
+        chemistry = 0
+        for player in current:
+            for key in teams_dict:
+                for key2 in teams_dict[key]:
+                    if player in teams_dict[key][key2]:
+                        for player2 in current:
+                            if player2 in teams_dict[key][key2]:
+                                if player != player2:
+                                    chemistry = chemistry + 1
+                                else:
+                                    continue
+                            else:
+                                continue
+
+        currentTeam = np.append(currentTeam, chemistry)
+        
+        with open('final3.pkl', 'rb') as file:
+            model = pickle.load(file)
+        prediction = model.predict([currentTeam])
+        # print(prediction)
+        generatePlot(currentTeam, filtcols)
+        return render_template('result.html', text = prediction)
+
     return render_template("/project.html", text = "Trial")
+
+def generatePlot(team, cols):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatterpolar(
+        r=team,
+        theta=cols,
+        fill='toself'))
+
+    fig.update_layout(
+    polar=dict(
+        radialaxis=dict(
+        visible=True,
+        range=[0, 100]
+        )),
+    showlegend=False
+    )
+
+    pio.write_image(fig, 'NBABackend/static/Images/plot.png')
 
 
 def calculate_win_percentage(wins_losses):
@@ -55,7 +169,6 @@ def loadGame():
     dataSetGame = dataSetGame[dataSetGame["game_date"] >="2015-01-01 00:00:00"]
     dataSetGame = dataSetGame.drop(columns = ["season_id", "team_id_home", "game_id", "min", "plus_minus_home", "video_available_home",
                                          "plus_minus_away", "video_available_away"])
-    columnsMissing = dataSetGame.columns[dataSetGame.isna().any()].tolist()
     dataSetGame = dataSetGame.drop(columns = ['wl_away'])
     dataSetGame = dataSetGame.dropna()
     matchDataSet = dataSetGame.groupby(['team_abbreviation_home',"team_abbreviation_away"])['wl_home'].sum()    
