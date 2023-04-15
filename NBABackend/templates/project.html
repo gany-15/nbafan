@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+
+    <title>NBA Playground</title>
+    <style>
+      body {
+        overflow: hidden;
+      }
+      #carouselExampleFade {
+        height: 100vh;
+      }
+      .carousel-item img {
+        height: 100%;
+        object-fit: cover;
+      }
+      .logo {
+        z-index: 999;
+        margin-left: 2vw;
+      }
+      .form-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      .form-group {
+        margin: 1rem 0;
+      }
+      .form-submit {
+        margin-top: 2rem;
+      }
+      .form-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+      }
+      .card {
+        background-color: rgba(
+          255,
+          255,
+          255,
+          0.4
+        ); /* Set the background color of the card to a transparent white */
+      }
+    </style>
+    <script type="text/javascript" src="/static/JS\players.js"></script>
+  </head>
+  <body>
+    <!-- NBA Logo -->
+    <div class="logo position-absolute top-0 start-0">
+      <img src="/static/Images/logo.png" alt="NBA Logo" width="80px" height="80px" />
+    </div>
+
+    <!-- Carousel -->
+    <div
+      id="carouselExampleFade"
+      class="carousel slide carousel-fade"
+      data-bs-ride="carousel"
+      data-bs-interval="1500"
+    >
+      <div class="carousel-inner">
+        <div class="carousel-item active">
+          <img src="/static/Images/background1.jpg" class="d-block w-100" alt="..." />
+        </div>
+        <div class="carousel-item">
+          <img src="/static/Images/background2.jpg" class="d-block w-100" alt="..." />
+        </div>
+        <div class="carousel-item">
+          <img src="/static/Images/background3.jpg" class="d-block w-100" alt="..." />
+        </div>
+      </div>
+      <button
+        class="carousel-control-prev"
+        type="button"
+        data-bs-target="#carouselExampleFade"
+        data-bs-slide="prev"
+      >
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button
+        class="carousel-control-next"
+        type="button"
+        data-bs-target="#carouselExampleFade"
+        data-bs-slide="next"
+      >
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    </div>
+
+    <!-- Player Selection Form -->
+    <div class="container form-container h-100 w-80">
+      <div class="row h-100 justify-content-center align-items-center">
+        <div class="col-sm-12">
+          <div class="card">
+            <div class="card-header"><h2>Player Selection</h2></div>
+            <div class="card-body">
+              <form method="POST" action="/">
+                <div class="form-group">
+                  <label for="playerOne">Player 1:</label>
+                  <select class="form-select" id="playerOne" name="playerOne">
+                    <option selected disabled>Select a player</option>
+                    <!-- Add more options as needed -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="playerTwo">Player 2:</label>
+                  <select class="form-select" id="playerTwo" name="playerTwo">
+                    <option selected disabled>Select a player</option>
+                    <!-- Add more options as needed -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="playerThree">Player 3:</label>
+                  <select class="form-select" id="playerThree" name="playerThree">
+                    <option selected disabled>Select a player</option>
+                    <!-- Add more options as needed -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="playerFour">Player 4:</label>
+                  <select class="form-select" id="playerFour" name="playerFour">
+                    <option selected disabled>Select a player</option>
+                    <!-- Add more options as needed -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="playerFive">Player 5:</label>
+                  <select class="form-select" id="playerFive" name="playerFive">
+                    <option selected disabled>Select a player</option>
+                    <!-- Add more options as needed -->
+                  </select>
+                </div>
+              </div>
+              <!-- <div class="submitButton">
+                  <button type="submit" class="btn btn-primary"> Submit</button>
+              </div> -->
+              <input type="submit" value="Submit">
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      // Update dropdown menus with player names
+      function updateDropdowns() {
+        // Get all the player dropdowns
+        const dropdowns = document.querySelectorAll("select.form-select");
+
+        // Loop through each dropdown
+        dropdowns.forEach((dropdown) => {
+          // Clear existing options
+          dropdown.innerHTML =
+            "<option selected disabled>Select a player</option>";
+
+          // Add player names as options
+          players.forEach((player) => {
+            // Check if player has already been selected in another dropdown
+            const selectedPlayers = Array.from(dropdowns)
+              .filter((d) => d.value !== "")
+              .map((d) => d.value);
+            if (!selectedPlayers.includes(player)) {
+              // Add player name as an option
+              const option = document.createElement("option");
+              option.value = player;
+              option.text = player;
+              dropdown.appendChild(option);
+            }
+          });
+        });
+      }
+
+      // Update dropdown menus when a player is selected
+      document.addEventListener("change", (event) => {
+        // Get the selected player
+        const selectedPlayer = event.target.value;
+
+        // Remove selected player from other dropdown menus
+        const dropdowns = document.querySelectorAll("select.form-select");
+        dropdowns.forEach((dropdown) => {
+          if (dropdown !== event.target) {
+            const option = dropdown.querySelector(
+              `option[value="${selectedPlayer}"]`
+            );
+            if (option) {
+              option.remove();
+            }
+          }
+        });
+      });
+
+      updateDropdowns();
+    </script>
+  </body>
+</html>

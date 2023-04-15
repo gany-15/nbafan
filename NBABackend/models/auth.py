@@ -27,6 +27,7 @@ df2 = pd.read_csv("NBABackend/csv/Player Totals.csv")
 
 @auth.route("/",  methods = ["GET", "POST"])
 def login():
+    print("Here")
     if request.method == "POST":
         playerOne = request.form.get("playerOne")
         playerTwo = request.form.get("playerTwo")
@@ -34,7 +35,7 @@ def login():
         playerFour = request.form.get("playerFour")
         playerFive = request.form.get("playerFive")
         print(playerOne, playerTwo, playerThree, playerFour, playerFive)
-    return render_template("/index.html", text = "Trial")
+    return render_template("/project.html", text = "Trial")
 
 
 def calculate_win_percentage(wins_losses):
@@ -118,22 +119,119 @@ def trial():
 
 @auth.route("/modelTrain", methods = ["GET", "POST"])
 def modelTrain():
-    global df2
-    inputDataSet = df2.drop(columns = ["playoffs"])
-    outDataSet = df2["playoffs"]
+    # global df2
+    # inputDataSet = df2.drop(columns = ["playoffs"])
+    # outDataSet = df2["playoffs"]
+    # X_train, X_test, Y_train, Y_test = train_test_split( inputDataSet, outDataSet, test_size=0.2)
+    # logit=linear_model.LogisticRegression(C=1e10,max_iter=1e5)
+    # logit.fit(X_train,Y_train)
+    # print('Logistic Regression Accuracy Score on Test data:', logit.score(X_test,Y_test))
+    # print('Logistic Regression Accuracy Score on train data:', logit.score(X_train,Y_train))
+    
+    # predictions = logit.predict(X_test)
+    # print(confusion_matrix(Y_test,predictions))
+    # print(classification_report(Y_test,predictions))
+    # # logit.save("firstTry.h5")
+    # with open('my_model.pkl', 'wb') as f:
+    #     pickle.dump(logit, f)
+    # return render_template('csv.html', text = predictions)
+    dataSet = pd.read_csv("NBABackend/csv/Player Totals.csv")
+    dataSet = dataSet[dataSet["lg"] == "NBA"]
+    dataSet = dataSet[dataSet["season"] >= 2015]
+    dataSet = dataSet.drop(columns = "birth_year")
+    trialPlayer = dataSet.drop(columns = ["seas_id", "player_id", "age", "experience","lg", "mp","ft_percent", 'g', 'gs'])
+    trialPlayer2 = trialPlayer
+    stats = {
+    'C': [0.7, 0.4, 0.9, 0.3, 0.3, 0.5, 0.8, 0.8, 0.8, 0.6, 0.7, 0.8, 0.8, 0.8, 0.8, 0.4, 0.6, 0.8, 0.8, 0.8, 0.7],
+    'PF': [0.6, 0.5, 0.75, 0.5, 0.5, 0.65, 0.6, 0.6, 0.65, 0.5, 0.5, 0.6, 0.6, 0.65, 0.65, 0.4, 0.6, 0.65, 0.75, 0.7, 0.7],
+    'PG': [0.8, 0.8, 0.6, 0.65, 0.65, 0.8, 0.6, 0.7, 0.5, 0.5, 0.8, 0.75, 0.4, 0.55, 0.55, 0.8, 0.8, 0.5, 0.7, 0.65, 0.75],
+    'SF': [0.4, 0.5, 0.6, 0.65, 0.65, 0.8, 0.4, 0.4, 0.55, 0.5, 0.5, 0.55, 0.45, 0.5, 0.5, 0.4, 0.7, 0.55, 0.7, 0.65, 0.7],
+    'SG': [0.5, 0.7, 0.6, 0.75, 0.75, 0.8, 0.4, 0.5, 0.5, 0.5, 0.5, 0.55, 0.4, 0.5, 0.5, 0.5, 0.7, 0.5, 0.8, 0.65, 0.7]
+}
+    # for index, row in trial.iterrows():
+    #     for index2, row2 in chemistryDataFrame.iterrows():
+    #         if trial.loc[index, "season"] == chemistryDataFrame.loc[index2, "Year"] and trial.loc[index, "abbreviation"] == chemistryDataFrame.loc[index2, "Team"]:
+    #             trial.loc[index, "teamChemistry"] = chemistryDataFrame.loc[index2, "Value"]
+    
+    trialPlayer2["pos"] = trialPlayer2["pos"].str.split('-').str.get(0)
+    trialPlayer2 = trialPlayer2.drop(columns = ['season', 'player', 'pos', 'tm'])
+    for index, row in trialPlayer.iterrows():
+#     trialPlayer2.loc[index][-21:] = trialPlayer2.loc[index][-21:]*stats[trialPlayer2.loc[index, "pos"]]
+        trialPlayer2.loc[index] = trialPlayer2.loc[index] * stats[trialPlayer.loc[index, "pos"]]
+    trialPlayer3 = trialPlayer2
+    trialPlayer3["season"] = trialPlayer["season"]
+    trialPlayer3["player"] = trialPlayer["player"]
+    trialPlayer3["pos"] = trialPlayer["pos"]
+    trialPlayer3["tm"] = trialPlayer["tm"]
+    trialPlayer3 = trialPlayer3.fillna(0)
+    trialPlayer4 = trialPlayer3.drop(columns =["pos", "player"])
+    team_year_avg = trialPlayer4.groupby(['season', 'tm']).mean()
+    df = team_year_avg.reset_index().rename(columns={'season': 'season_column'})
+    rows_to_drop = df[df["tm"] == "TOT"].index
+
+# Drop the rows
+    df.drop(rows_to_drop, inplace=True)
+    rows_to_drop = trialPlayer3[trialPlayer3["tm"] == "TOT"].index
+
+# Drop the rows
+    trialPlayer3.drop(rows_to_drop, inplace=True)
+    grouped = trialPlayer3.groupby(['season', 'tm'])
+    teams_dict = {}
+
+    for (year, team), players in grouped:
+        if year not in teams_dict:
+            teams_dict[year] = {}
+        teams_dict[year][team] = players['player'].tolist()
+    
+    newtrial = []
+    for key in teams_dict:
+        for team in teams_dict[key]:
+            current = teams_dict[key][team]
+            chemistry = 0
+            for player in current:
+                for year in teams_dict:
+                    for key2 in teams_dict[year]:
+                        if player in teams_dict[year][key2]:
+                            for player2 in current:
+                                if player2 in teams_dict[year][key2]:
+                                    if player != player2:
+                                        chemistry = chemistry + 1
+                                    else:
+                                        continue
+                                else:
+                                    continue
+            newtrial.append([key, team, chemistry])
+    
+    columns = ["Year", "Team", "Value"]
+
+    chemistryDataFrame = pd.DataFrame(newtrial, columns=columns)
+
+    chemistryDataFrame[chemistryDataFrame["Team"] == "BOS"]
+
+    for index, row in df.iterrows():
+        for index2, row2 in chemistryDataFrame.iterrows():
+            if df.loc[index, "season_column"] == chemistryDataFrame.loc[index2, "Year"] and df.loc[index, "tm"] == chemistryDataFrame.loc[index2, "Team"]:
+                df.loc[index, "teamChemistry"] = chemistryDataFrame.loc[index2, "Value"]
+    
+    df = df.fillna(0)
+    df2 = pd.read_csv('NBABackend/csv/Team Totals.csv')
+    df2 = df2[df2.season >= 2015]
+    df2 = df2[df2.team != 'League Average']
+    df["playoffs"] = False
+    for index, row in df.iterrows():
+        for index2, row2 in df2.iterrows():
+            if df.loc[index, "season_column"] == df2.loc[index2, "season"] and df.loc[index, "tm"] == df2.loc[index2, "abbreviation"]:
+                df.loc[index, "playoffs"] = df2.loc[index2, "playoffs"]
+
+    inputDataSet = df.drop(columns = ["playoffs", "tm", "season_column"])
+    outDataSet = df["playoffs"]
     X_train, X_test, Y_train, Y_test = train_test_split( inputDataSet, outDataSet, test_size=0.2)
     logit=linear_model.LogisticRegression(C=1e10,max_iter=1e5)
     logit.fit(X_train,Y_train)
     print('Logistic Regression Accuracy Score on Test data:', logit.score(X_test,Y_test))
     print('Logistic Regression Accuracy Score on train data:', logit.score(X_train,Y_train))
-    
-    predictions = logit.predict(X_test)
-    print(confusion_matrix(Y_test,predictions))
-    print(classification_report(Y_test,predictions))
-    # logit.save("firstTry.h5")
-    with open('my_model.pkl', 'wb') as f:
-        pickle.dump(logit, f)
-    return render_template('csv.html', text = predictions)
+    return render_template('csv.html', text = logit.score(X_test,Y_test))
+
 
 
 @auth.route("/modelPredict", methods = ["GET", "POST"])
