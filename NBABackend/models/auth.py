@@ -1,7 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from sklearn.model_selection import train_test_split
-# from tensorflow import keras
-# import tensorflow as tf
 import pickle
 from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
@@ -230,6 +228,9 @@ def modelTrain():
     logit.fit(X_train,Y_train)
     print('Logistic Regression Accuracy Score on Test data:', logit.score(X_test,Y_test))
     print('Logistic Regression Accuracy Score on train data:', logit.score(X_train,Y_train))
+
+    with open('final3.pkl', 'wb') as f:
+        pickle.dump(logit, f)
     return render_template('csv.html', text = logit.score(X_test,Y_test))
 
 
