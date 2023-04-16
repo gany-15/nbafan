@@ -138,13 +138,13 @@ def login():
         prediction = model.predict([currentTeam])
         # print(prediction)
         
-        generatePlot(currentTeam, filtcols)
+        generatePlot(currentTeam, filtcols, 0)
        
         return render_template('result.html', text = prediction)
 
     return render_template("/project.html", text = "Trial")
 
-def generatePlot(team, cols):
+def generatePlot(team, cols, index):
     fig = go.Figure()
 
     fig.add_trace(go.Scatterpolar(
@@ -161,7 +161,7 @@ def generatePlot(team, cols):
     showlegend=False
     )
 
-    pio.write_image(fig, 'NBABackend/static/Images/plot.png')
+    pio.write_image(fig, 'NBABackend/static/Images/plot' + str(index) +'.png')
 
 def calculate_win_percentage(wins_losses):
     num_wins = wins_losses.count('W')
@@ -366,9 +366,6 @@ def modelPredict():
     global df2
     df2 = df2.drop(columns = ["playoffs"])
     rowTry = df2.iloc[0]
-    # rowTry["fg_percent"]  = 50
-    # rowTry["fg"] = 2
-    # rowTry["ast"] = 100
     rowTry = [rowTry]
     with open('my_model.pkl', 'rb') as file:
         model = pickle.load(file)
@@ -380,8 +377,25 @@ def modelPredict():
 def teamCompare():
     if request.method == "POST":
         teamSelected = request.form.get("team")
-        print(teamSelected)
         global currentTeamComparison
-        print(currentTeamComparison)
-        return render_template('csv.html', text = currentTeamComparison)
+
+        scale = [6] * 20
+        scale += [6, 4]
+
+        df = pd.read_csv('NBABackend/csv/team_compare.csv')
+        team1 = scale * df[df['tm'] == teamSelected].values[:, 1:]
+        team1perf = np.sum(team1[0])
+        team2perf = scale * currentTeamComparison
+        team2perf = np.sum(team2perf)
+        winnerTeam = ""
+        if team1perf > team2perf: 
+            winnerTeam = teamSelected
+        else:
+            winnerTeam = "Your Selected Team"
+
+        filtcols = df.columns[1:]
+    
+        generatePlot(team1[0], filtcols, 1)
+        generatePlot(currentTeamComparison, filtcols, 2)
+        return render_template('teamComparisonResult.html', text = winnerTeam)
     return render_template('teamComparison.html')
