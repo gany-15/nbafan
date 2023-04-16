@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from sklearn.model_selection import train_test_split
 import pickle
@@ -21,6 +22,9 @@ import requests
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
+import plotly.graph_objs as go
+import plotly.io as pio
+import plotly.utils as pu
 
 auth = Blueprint("auth", __name__)
 
@@ -91,6 +95,9 @@ def login():
                 newtrial.append([key, team, chemistry])
 
         df = pd.read_csv('NBABackend/csv/output4.csv')
+        rows_to_drop = df[df["season"] == 2023].index
+
+        df.drop(rows_to_drop, inplace=True)
         filtcols = df.columns[-25:-4]
         p = {
             'C': df[df['player'] == playerOne][filtcols].values[0],
@@ -121,11 +128,15 @@ def login():
 
         currentTeam = np.append(currentTeam, chemistry)
         
+       
         with open('final3.pkl', 'rb') as file:
             model = pickle.load(file)
+        
         prediction = model.predict([currentTeam])
         # print(prediction)
+        
         generatePlot(currentTeam, filtcols)
+       
         return render_template('result.html', text = prediction)
 
     return render_template("/project.html", text = "Trial")
@@ -148,7 +159,6 @@ def generatePlot(team, cols):
     )
 
     pio.write_image(fig, 'NBABackend/static/Images/plot.png')
-
 
 def calculate_win_percentage(wins_losses):
     num_wins = wins_losses.count('W')
