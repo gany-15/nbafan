@@ -30,6 +30,8 @@ auth = Blueprint("auth", __name__)
 
 df2 = pd.read_csv("NBABackend/csv/Player Totals.csv")
 
+currentTeamComparison = []
+
 @auth.route("/",  methods = ["GET", "POST"])
 def login():
     # print("Here")
@@ -127,7 +129,8 @@ def login():
                                 continue
 
         currentTeam = np.append(currentTeam, chemistry)
-        
+        global currentTeamComparison
+        currentTeamComparison = currentTeam
        
         with open('final3.pkl', 'rb') as file:
             model = pickle.load(file)
@@ -372,3 +375,13 @@ def modelPredict():
     prediction = model.predict(rowTry)
     print(prediction)
     return render_template('csv.html', text = prediction)
+
+@auth.route("/teamCompare", methods = ["GET", "POST"])
+def teamCompare():
+    if request.method == "POST":
+        teamSelected = request.form.get("team")
+        print(teamSelected)
+        global currentTeamComparison
+        print(currentTeamComparison)
+        return render_template('csv.html', text = currentTeamComparison)
+    return render_template('teamComparison.html')
