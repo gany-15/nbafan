@@ -389,12 +389,12 @@ def teamCompare():
         team2perf = np.sum(team2perf)
         winnerTeam = ""
         if team1perf > team2perf: 
-            winnerTeam = teamSelected
+            winnerTeam = 'False'
         else:
-            winnerTeam = "Your Selected Team"
+            winnerTeam = 'True'
 
         filtcols = df.columns[1:]
-    
+        print(team1perf, team2perf)
         generatePlot(team1[0], filtcols, 1)
         generatePlot(currentTeamComparison, filtcols, 2)
         return render_template('teamComparisonResult.html', text = winnerTeam)
