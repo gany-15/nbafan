@@ -32,6 +32,10 @@ df2 = pd.read_csv("NBABackend/csv/Player Totals.csv")
 
 currentTeamComparison = []
 
+plotColumns = ['fg', 'fga', 'fg_percent', 'x3p', 'x3pa', 'x3p_percent', 'x2p', 'x2pa',
+       'x2p_percent', 'e_fg_percent', 'ft', 'fta', 'orb', 'drb', 'trb', 'ast',
+       'stl', 'blk', 'tov', 'pf', 'pts', 'teamChemistry']
+
 @auth.route("/",  methods = ["GET", "POST"])
 def login():
     # print("Here")
@@ -137,8 +141,8 @@ def login():
         
         prediction = model.predict([currentTeam])
         # print(prediction)
-        
-        generatePlot(currentTeam, filtcols, 0)
+        global plotColumns
+        generatePlot(currentTeam, plotColumns, 0)
        
         return render_template('result.html', text = prediction)
 
@@ -394,6 +398,7 @@ def teamCompare():
             winnerTeam = 'True'
 
         filtcols = df.columns[1:]
+        print(filtcols)
         print(team1perf, team2perf)
         generatePlot(team1[0], filtcols, 1)
         generatePlot(currentTeamComparison, filtcols, 2)
