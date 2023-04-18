@@ -141,8 +141,11 @@ def login():
         
         prediction = model.predict([currentTeam])
         # print(prediction)
+        scale = [6] * 20
+        scale += [6, 4]
+        currentTeam2 = scale * currentTeam
         global plotColumns
-        generatePlot(currentTeam, plotColumns, 0)
+        generatePlot(currentTeam2, plotColumns, 0)
        
         return render_template('result.html', text = prediction)
 
@@ -160,7 +163,7 @@ def generatePlot(team, cols, index):
     polar=dict(
         radialaxis=dict(
         visible=True,
-        range=[0, 100]
+        range=[0, 1000]
         )),
     showlegend=False
     )
@@ -388,9 +391,11 @@ def teamCompare():
 
         df = pd.read_csv('NBABackend/csv/team_compare.csv')
         team1 = scale * df[df['tm'] == teamSelected].values[:, 1:]
+        print(team1[0])
+        print(scale * currentTeamComparison)
         team1perf = np.sum(team1[0])
-        team2perf = scale * currentTeamComparison
-        team2perf = np.sum(team2perf)
+        team2 = scale * currentTeamComparison
+        team2perf = np.sum(team2)
         winnerTeam = ""
         if team1perf > team2perf: 
             winnerTeam = 'False'
@@ -401,6 +406,6 @@ def teamCompare():
         print(filtcols)
         print(team1perf, team2perf)
         generatePlot(team1[0], filtcols, 1)
-        generatePlot(currentTeamComparison, filtcols, 2)
+        generatePlot(team2, filtcols, 2)
         return render_template('teamComparisonResult.html', text = winnerTeam)
     return render_template('teamComparison.html')
