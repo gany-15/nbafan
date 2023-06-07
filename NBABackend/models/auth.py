@@ -418,20 +418,6 @@ def modelPredict():
         model = pickle.load(file)
     prediction = model.predict(rowTry)
 
-    r = pyper.R(use_pandas=True)
-    model_path = 'NBABackend/static/playoffs_ensemble.rds'
-    r.assign('rmodel', model_path)
-    # data = {"data": rowTry}
-    if type(rowTry) is not np.ndarray:
-        rowTry = pd.DataFrame(np.array(rowTry), columns=['x'])
-    r.assign("rdata", rowTry)
-    expr  = 'model <- readRDS(rmodel); result <- predict(model, rdata, probability=False)'
-    r(expr)
-    res= r.get('result')
-
-    print('r', rowTry)
-    print('r', res)
-
     print(prediction)
     return render_template('csv.html', text = prediction)
 
