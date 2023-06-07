@@ -26,6 +26,12 @@ import plotly.graph_objs as go
 import plotly.io as pio
 import plotly.utils as pu
 
+import rpy2.robjects as robjects
+from rpy2.robjects import numpy2ri, pandas2ri
+from rpy2.robjects.packages import importr
+import rpy2.robjects.packages as rpackages
+from rpy2.robjects.vectors import StrVector
+
 auth = Blueprint("auth", __name__)
 
 df2 = pd.read_csv("NBABackend/csv/Player Totals.csv")
@@ -135,19 +141,50 @@ def login():
         currentTeam = np.append(currentTeam, chemistry)
         global currentTeamComparison
         currentTeamComparison = currentTeam
+
+        dummyRow = [0] * 22
+        cols = ['fg', 'fga', 'fg_percent', 'x3p', 'x3pa', 'x3p_percent', 'x2p', 'x2pa', 'x2p_percent', 'e_fg_percent', 'ft', 'fta', 'orb', 'drb', 'trb', 'ast', 'stl', 'blk', 'tov', 'pf', 'pts', 'teamChemistry']
+        
+        data_df = pd.DataFrame([currentTeam, dummyRow], columns=cols)
        
         with open('final3.pkl', 'rb') as file:
             model = pickle.load(file)
         
         prediction = model.predict([currentTeam])
-        # print(prediction)
+
+        print(type(currentTeam))
+
+        # R setup and package installation
+        utils = rpackages.importr('utils')
+        utils.chooseCRANmirror(ind=1)
+        packages = ('klaR', 'caretEnsemble', 'kernlab')
+        install = [p for p in packages if not rpackages.isinstalled(p)]
+        if len(install) > 0:
+            utils.install_packages(StrVector(install))
+        
+        # Model load and prediction
+        ce = importr('caretEnsemble')
+        r = robjects.r
+        numpy2ri.activate()
+        model_rds_path = "NBABackend/static/playoffs_ensemble.rds"
+        model = r.readRDS(model_rds_path)
+        rdata = None
+        with robjects.conversion.localconverter(robjects.default_converter + pandas2ri.converter):
+            rdata = robjects.conversion.py2rpy(data_df)
+        result = r.predict(model, rdata)
+
+        print(result)
+        print(np.array(result))
+        returnText = 'False' if np.array(result)[0] == 1 else 'True'
+
+        print(prediction)
         scale = [6] * 20
         scale += [6, 4]
         currentTeam2 = scale * currentTeam
         global plotColumns
         generatePlot(currentTeam2, plotColumns, 0)
        
-        return render_template('result.html', text = prediction)
+        return render_template('result.html', text = returnText)
 
     return render_template("/project.html", text = "Trial")
 
@@ -374,9 +411,27 @@ def modelPredict():
     df2 = df2.drop(columns = ["playoffs"])
     rowTry = df2.iloc[0]
     rowTry = [rowTry]
+
+    print(rowTry)
+
     with open('my_model.pkl', 'rb') as file:
         model = pickle.load(file)
     prediction = model.predict(rowTry)
+
+    r = pyper.R(use_pandas=True)
+    model_path = 'NBABackend/static/playoffs_ensemble.rds'
+    r.assign('rmodel', model_path)
+    # data = {"data": rowTry}
+    if type(rowTry) is not np.ndarray:
+        rowTry = pd.DataFrame(np.array(rowTry), columns=['x'])
+    r.assign("rdata", rowTry)
+    expr  = 'model <- readRDS(rmodel); result <- predict(model, rdata, probability=False)'
+    r(expr)
+    res= r.get('result')
+
+    print('r', rowTry)
+    print('r', res)
+
     print(prediction)
     return render_template('csv.html', text = prediction)
 
